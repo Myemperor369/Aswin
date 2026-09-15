@@ -965,14 +965,10 @@
     function startExperience() {
       const tvContent = document.getElementById('tvContent');
       const music = document.getElementById('bgMusic');
-      const musicBtn = document.getElementById('musicBtn');
 
       tvContent.classList.add('on');
 
-      music.play().then(() => {
-        musicBtn.classList.add('playing');
-        document.getElementById('musicIcon').className = 'fas fa-pause';
-      }).catch(e => console.log("Audio play failed:", e));
+      music.play().then(markPlaying).catch(e => console.log("Audio play failed:", e));
 
       setTimeout(() => showPage('homePage'), 2500);
     }
@@ -990,6 +986,34 @@
         music.pause();
         musicBtn.classList.remove('playing');
         musicIcon.className = 'fas fa-music';
+      }
+    }
+
+    function markPlaying() {
+      const musicBtn = document.getElementById('musicBtn');
+      const musicIcon = document.getElementById('musicIcon');
+      if (musicBtn) musicBtn.classList.add('playing');
+      if (musicIcon) musicIcon.className = 'fas fa-pause';
+    }
+
+    function tryAutoplayMusic() {
+      const music = document.getElementById('bgMusic');
+      if (!music) return;
+
+      // Try to play immediately when the page opens.
+      const attempt = music.play();
+      if (attempt !== undefined) {
+        attempt.then(markPlaying).catch(() => {
+          // Browser blocked silent autoplay with sound - start it on the
+          // very first tap/click/key anywhere on the page instead, so it
+          // plays as soon as the visitor does anything at all.
+          const startOnFirstTouch = () => {
+            music.play().then(markPlaying).catch(() => {});
+          };
+          ['click', 'touchstart', 'keydown', 'scroll'].forEach(evt => {
+            document.addEventListener(evt, startOnFirstTouch, { once: true, passive: true });
+          });
+        });
       }
     }
 
@@ -1094,6 +1118,7 @@
 
     window.addEventListener('load', createHearts);
     window.addEventListener('load', spawnMeteors);
+    window.addEventListener('load', tryAutoplayMusic);
   </script>
 </body>
 </html>
